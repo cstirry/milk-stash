@@ -45,13 +45,13 @@ st.title("Milk Stash Calculator")
 
 # Sidebar for input fields
 with st.sidebar:
-    oz_drink_per_day = st.number_input("Expected Ounces Drink in a Day:", value=30)
-    oz_stored = st.number_input("Current Ounces Stored:", value=500)
+    oz_drink_per_day = st.number_input("Expected Ounces Consumed in a Day:", value=30)
+    oz_stored = st.number_input("Current Ounces in Storage:", value=500)
     expected_oz_stored_per_day = st.number_input("Expected Ounces Stored in a Day:", value=20)
-    weaning_start = st.date_input("Expected start of weaning date:", datetime(2024, 2, 1))
-    weaning_end = st.date_input("End of weaning date:", datetime(2024, 4, 1))
+    weaning_start = st.date_input("Expected Start of Weaning:", datetime(2024, 2, 1))
+    weaning_end = st.date_input("Expected End of Weaning:", datetime(2024, 4, 1))
     end_date = st.date_input("Desired End Date for Milk to last:", datetime(2024, 6, 1))
-    daily_percentage = st.slider("Desired amount of milk to eat daily (%):", 0, 100, 100)
+    daily_percentage = st.slider("Desired Percentage of Milk to Consume Daily through End Date:", 0, 100, 100)
 
 # Calculate button
 if st.button("Calculate"):
