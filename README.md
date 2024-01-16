@@ -1,4 +1,6 @@
-# Milk Stash Calculator app
+# Pumped Milk & Formula Stash app
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://milk-formula-stash-app.streamlit.app)
 
 This is a repository for a Streamlit app designed to calculate estimated needs for formula and pumped milk storage,
 aiding in effective planning and resource management.
