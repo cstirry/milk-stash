@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
-
 import streamlit as st
 
 from utils.calculations import calculate_daily_amounts
 from utils.helpers import safe_divide
-from utils.visualizations import display_formula_metrics, display_pumped_milk_metrics, display_storage_chart, \
+from utils.visualizations import (
+    display_formula_metrics, 
+    display_pumped_milk_metrics, 
+    display_storage_chart, 
     display_consumption_chart
+)
 
 
 def main():
