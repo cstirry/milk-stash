@@ -1,72 +1,133 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from utils.calculations import calculate_daily_amounts
+from utils.helpers import safe_divide
+from utils.visualizations import display_formula_metrics, display_pumped_milk_metrics, display_storage_chart, \
+    display_consumption_chart
 
-# Function to calculate daily milk requirements
-def calculate_daily_milk(oz_drink_per_day, oz_stored, expected_oz_stored_per_day,
-                         weaning_start, weaning_end, end_date, daily_percentage):
-    # Convert datetime.date to pandas.Timestamp
-    weaning_start = pd.Timestamp(weaning_start)
-    weaning_end = pd.Timestamp(weaning_end)
-    end_date = pd.Timestamp(end_date)
 
-    daily_intake = oz_drink_per_day * (daily_percentage / 100)
-    dates = pd.date_range(start=weaning_start, end=end_date)
-    milk_data = []
+def main():
+    # Streamlit app
+    st.title("👶 Milk & Formula Stash 👶")
+    st.write("This app is designed to calculate estimated needs for pumped milk storage and formula.")
+    st.write("<br>", unsafe_allow_html=True)
 
-    for date in dates:
-        if date <= weaning_end:
-            # During weaning, assume a linear decrease in production
-            days_into_weaning = (date - weaning_start).days
-            weaning_days = (weaning_end - weaning_start).days
-            daily_decrease = (oz_drink_per_day - daily_intake) / weaning_days
-            daily_need = oz_drink_per_day - days_into_weaning * daily_decrease
+    # Sidebar
+    with st.sidebar:
+        # Set default dates
+        current_date = datetime.now()
+        default_formula_end_date = current_date + timedelta(days=90)
+        default_milk_end_date = current_date + timedelta(days=60)
+        default_weaning_end_date = current_date + timedelta(days=30)
+        default_weaning_start_date = current_date + timedelta(days=10)
+
+        # Set multiselect options
+        st.sidebar.markdown("### Options")
+        options = st.sidebar.multiselect("Select Relevant Options", ["Formula", "Pumped Milk", "Breastfed"])
+
+        # Set sidebar inputs
+        st.sidebar.markdown("### Estimated Values")
+        oz_per_day = st.number_input("Oz Consumed by 👶 Daily:", value=30)
+
+        if "Formula" in options:
+            formula_end = st.sidebar.date_input("End Date for Formula Feeding:", default_formula_end_date)
+            formula_can = st.sidebar.number_input("Oz of Prepared Formula per Can:", value=210)
         else:
-            daily_need = daily_intake
+            formula_end = None
+            formula_can = None
 
-        if oz_stored >= daily_need:
-            stored_used = daily_need
-            additional_needed = 0
-            oz_stored -= daily_need
+        if "Pumped Milk" in options:
+            oz_stored = st.number_input("Current Oz in Storage:", value=20)
+            oz_in_bag = st.sidebar.number_input("Avg Oz in a Storage Bag:", value=5)
+            milk_end = st.sidebar.date_input("End Date for Pumped Milk Feeding:", default_milk_end_date)
+            pumped_milk_pct = st.sidebar.slider("% of Daily Diet is Pumped Milk (Until End Date):", 0, 100, 60)
         else:
-            stored_used = oz_stored
-            additional_needed = daily_need - oz_stored
+            milk_end = None
+            pumped_milk_pct = 0
             oz_stored = 0
+            oz_in_bag = 0
 
-        milk_data.append([date, stored_used, additional_needed])
+        if "Breastfed" in options:
+            breastmilk_pct = st.sidebar.slider("% of Daily Diet is Breastfed Milk (Pre-Weaning):", 0, 100, 90)
+            weaning_start = st.sidebar.date_input("Start Date of Weaning:", default_weaning_start_date)
+            weaning_end = st.sidebar.date_input("End Date of Weaning:", default_weaning_end_date)
+        else:
+            breastmilk_pct = 0
+            weaning_start = None
+            weaning_end = None
 
-    return pd.DataFrame(milk_data, columns=['Date', 'Stored Milk', 'Additional Milk'])
+        # Set extra text sections
+        st.markdown("## Instructions")
+        st.markdown("""
+            Select the relevant option(s): Formula, Pumped Milk, and/or Breastfed (if you'd like to factor in a 
+            breastfeeding timeline). Provide the estimated values required and click 'Calculate'.
+            """)
+
+        st.markdown("## About")
+        st.markdown("""
+            This app was created to aid in personal planning and resource management needs. If you have suggestions or
+            want to create your own version, head over to the [GitHub repo](https://github.com/cstirry/milk-stash-app)!
+            """)
+
+    # Calculate section
+    if st.button("Calculate"):
+        st.write("<br>", unsafe_allow_html=True)
+        if options:
+
+            # Get values
+            df = calculate_daily_amounts(oz_per_day, formula_end, milk_end, weaning_start, weaning_end, breastmilk_pct,
+                                         pumped_milk_pct)
+
+            total_pumped_needed = df['Pumped Milk'].sum()
+            total_formula_needed = df['Formula'].sum()
+            total_unknown_needed = round(df['Unknown'].sum(), 0)
+
+            current_date = datetime.now().date()
+            end_date = max(filter(None, [milk_end, formula_end, weaning_end]), default=datetime.now().date())
+            days = (end_date - current_date).days
+            end_date = end_date.strftime("%B %d")
+
+            formula_cans = safe_divide(total_formula_needed, formula_can)
+            pumped_bags = safe_divide(total_pumped_needed, oz_in_bag)
+            stored_bags = safe_divide(oz_stored, oz_in_bag)
+            difference_oz = total_pumped_needed - oz_stored
+            difference_bags = safe_divide(difference_oz, oz_in_bag)
+
+            # Start visual
+            st.markdown(f"Estimated amounts to meet feeding needs for __{days} days__ through **{end_date}**:")
+
+            # Check for unknown amounts
+            if total_unknown_needed > 0:
+                st.warning(f"Current selection has {total_unknown_needed} ounces unaccounted for.")
+
+            # Only one option selected
+            if len(options) == 1:
+                if "Formula" in options:
+                    display_formula_metrics(total_formula_needed, formula_cans)
+                elif "Pumped Milk" in options:
+                    display_pumped_milk_metrics(total_pumped_needed, oz_stored, difference_oz, pumped_bags, stored_bags,
+                                                difference_bags)
+                elif "Breastfed" in options:
+                    pass
+            else:
+                # Multiple options selected
+                if "Formula" in options:
+                    display_formula_metrics(total_formula_needed, formula_cans)
+                if "Pumped Milk" in options:
+                    display_pumped_milk_metrics(total_pumped_needed, oz_stored, difference_oz, pumped_bags, stored_bags,
+                                                difference_bags)
+            # Charts
+            st.write("<br>", unsafe_allow_html=True)
+            display_consumption_chart(df, oz_per_day, ['Pumped Milk', 'Formula', 'Breastfed', 'Unknown'])
+            if oz_stored > 0:
+                display_storage_chart(oz_stored, difference_oz)
+
+        else:
+            # Prompt the user to select an option
+            st.warning('Please select at least one option to calculate.')
 
 
-# Streamlit app layout using sidebar for inputs
-st.title("Milk Stash Calculator")
-
-# Sidebar for input fields
-with st.sidebar:
-    oz_drink_per_day = st.number_input("Expected Ounces Consumed in a Day:", value=30)
-    oz_stored = st.number_input("Current Ounces in Storage:", value=500)
-    expected_oz_stored_per_day = st.number_input("Expected Ounces Stored in a Day:", value=20)
-    weaning_start = st.date_input("Expected Start of Weaning:", datetime(2024, 2, 1))
-    weaning_end = st.date_input("Expected End of Weaning:", datetime(2024, 4, 1))
-    end_date = st.date_input("Desired End Date for Milk to last:", datetime(2024, 6, 1))
-    daily_percentage = st.slider("Desired Percentage of Milk to Consume Daily through End Date:", 0, 100, 100)
-
-# Calculate button
-if st.button("Calculate"):
-    milk_df = calculate_daily_milk(oz_drink_per_day, oz_stored, expected_oz_stored_per_day, weaning_start, weaning_end,
-                                   end_date, daily_percentage)
-
-    # Calculate the total additional milk needed
-    total_additional_milk = milk_df['Additional Milk'].sum()
-
-    # Calculate the days needed to store the additional milk
-    days_to_store_additional_milk = total_additional_milk / expected_oz_stored_per_day
-
-    # Display the results
-    st.write(f"Total Additional Milk Needed: {total_additional_milk:.2f} oz")
-    st.write(f"Expected Days Needed to Store the Additional Milk: {days_to_store_additional_milk:.0f} days")
-
-    # Display the stacked bar chart
-    st.bar_chart(milk_df.set_index('Date'))
+if __name__ == "__main__":
+    main()

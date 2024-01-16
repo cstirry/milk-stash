@@ -1,13 +1,11 @@
 # Milk Stash Calculator app
 
-Streamlit app calculates milk stash requirements based on various inputs
-including current storage, expected weaning schedule, and expected consumption.
+This is a repository for a Streamlit app designed to calculate estimated needs for formula and pumped milk storage,
+aiding in effective planning and resource management.
 
-### Prerequisites
+You can interact with the web interface by either using the deployed Streamlit app or running the app locally.
 
-- Docker
-
-### Installing
+### Run the app locally with Docker
 
 1. Clone the repository
 2. Build the Docker image:
