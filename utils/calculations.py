@@ -63,17 +63,24 @@ def calculate_daily_amounts(oz_per_day, formula_end, milk_end, weaning_start, we
         pumped_milk_ounces = oz_per_day * current_pumped_milk_pct / 100
 
         # Calculate formula ounces
-        if formula_end:
+        if formula_end and current_date <= formula_end:
+            # Only calculate formula ounces if current_date is before or on formula_end
+
             if milk_end or weaning_end:
-                # If at least one of the dates is not None, check if current date is after both
-                if current_date > max(d for d in [milk_end, weaning_end] if d is not None):
-                    formula_ounces = oz_per_day  # Only formula after both milk_end and weaning_end
+                # If at least one of the dates is not None, find the latest of milk_end and weaning_end
+                latest_other_end_date = max(d for d in [milk_end, weaning_end] if d is not None)
+
+                if current_date > latest_other_end_date:
+                    # Only formula after both milk_end and weaning_end
+                    formula_ounces = oz_per_day
                 else:
+                    # Before or on the latest of milk_end and weaning_end
                     formula_ounces = max(0, oz_per_day - breastfed_ounces - pumped_milk_ounces)
             else:
-                # If both milk_end and weaning_end are None
+                # If both milk_end and weaning_end are None, use full oz_per_day as formula
                 formula_ounces = oz_per_day
         else:
+            # No formula if current_date is after formula_end or if formula_end is None
             formula_ounces = 0
 
         # Calculate unknown ounces
