@@ -13,23 +13,24 @@ def display_formula_metrics(total_formula_needed, formula_cans):
         st.write()
 
 
-def display_pumped_milk_metrics(total_pumped_needed, oz_stored, difference_oz, pumped_bags, stored_bags,
-                                difference_bags):
+def display_pumped_milk_oz_metrics(total_pumped_needed, oz_stored, difference_oz):
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric(label="Ounces of Pumped Milk", value=f"{total_pumped_needed:.0f} oz")
     with col2:
-        st.metric(label="Additional Ounces Needed", value=f"{difference_oz:.0f} oz")
+        st.metric(label="Current Storage", value=f"{oz_stored:.0f} oz")
     with col3:
-        st.metric(label="Current Ounces Stored", value=f"{oz_stored:.0f} oz")
+        st.metric(label="Additional Needed", value=f"{difference_oz:.0f} oz")
 
+
+def display_pumped_milk_bags_metrics(total_pumped_needed, stored_bags, difference_bags):
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric(label="Bags of Pumped Milk", value=f"{pumped_bags:.0f} bags")
+        st.metric(label="Ounces of Pumped Milk", value=f"{total_pumped_needed:.0f} oz")
     with col2:
-        st.metric(label="Additional Bags Needed", value=f"{difference_bags:.0f} bags")
+        st.metric(label="Current Storage", value=f"{stored_bags:.0f} bags")
     with col3:
-        st.metric(label="Current Bags Stored", value=f"{stored_bags:.0f} bags")
+        st.metric(label="Additional Needed", value=f"{difference_bags:.0f} bags")
 
 
 def display_storage_chart(stored, remaining):
